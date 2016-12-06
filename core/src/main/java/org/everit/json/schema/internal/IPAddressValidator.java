@@ -15,9 +15,8 @@
  */
 package org.everit.json.schema.internal;
 
-import com.google.common.net.InetAddresses;
-
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Optional;
 
 /**
@@ -34,12 +33,23 @@ public class IPAddressValidator {
      */
     protected Optional<InetAddress> asInetAddress(final String subject) {
         try {
-            if (InetAddresses.isInetAddress(subject)) {
-                return Optional.of(InetAddresses.forString(subject));
-            } else {
-                return Optional.empty();
+            //this is adapted from guava
+            boolean hasDot = false;
+            for (int i = 0; i < subject.length(); ++i) {
+                char c = subject.charAt(i);
+                if (c == '.') {
+                    hasDot = true;
+                } else if (c == ':') {
+                    if (hasDot) {
+                        return Optional.empty();
+                    }
+                } else if (Character.digit(c, 16) == -1) {
+                    return Optional.empty();
+                }
             }
-        } catch (NullPointerException e) {
+
+            return Optional.ofNullable(InetAddress.getByName(subject));
+        } catch (NullPointerException | UnknownHostException e) {
             return Optional.empty();
         }
     }
